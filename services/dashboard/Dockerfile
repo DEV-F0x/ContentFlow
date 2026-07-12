@@ -25,6 +25,13 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
+# psycopg (no [binary] extra) talks to Postgres via ctypes, loading the
+# system libpq.so at runtime instead of bundling a precompiled driver --
+# needed since no psycopg-binary wheel exists for platforms like arm/v7.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /install /usr/local
 
 COPY services/shared/ /shared/
