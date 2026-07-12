@@ -1,0 +1,71 @@
+// {
+//   "name": "ContentFlow",
+
+//   // Runs the whole stack (postgres, minio, api, dashboard) alongside the
+//   // workspace container, so the environment is identical on any machine.
+//   "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+//   "service": "devcontainer",
+//   "workspaceFolder": "/workspace",
+
+//   "forwardPorts": [5000, 5001, 5433, 9000, 9001],
+//   "portsAttributes": {
+//     "5000": { "label": "api" },
+//     "5001": { "label": "dashboard" },
+//     "5433": { "label": "postgres" },
+//     "9000": { "label": "minio" },
+//     "9001": { "label": "minio console" }
+//   },
+
+//   "postCreateCommand": "pip3 install --user -r services/api/requirements.txt -r services/dashboard/requirements.txt && pip3 install --user pre-commit && pre-commit install",
+
+//   "customizations": {
+//     "vscode": {
+//       "extensions": [
+//         "elagil.pre-commit-helper"
+//       ]
+//     }
+//   },
+
+//   "remoteUser": "vscode"
+// }
+
+{
+  "name": "Python 3",
+
+  // Or use a Dockerfile or Docker Compose file.
+  // More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/python:3-3.14-trixie",
+
+  //"build": {
+  //  "dockerfile": "Dockerfile"
+  //},
+
+  // Features to add to the dev container.
+  // More info: https://containers.dev/features.
+  //"features": {},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  "forwardPorts": [5000],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "bash .devcontainer/setup-templates.sh && pip3 install --user -r requirements.txt && pip3 install --user pre-commit",
+  "postCreateCommand": "pip3 install --user pre-commit",
+
+  // Configure tool-specific properties.
+  //"customizations": {},
+
+  // Uncomment to connect as root instead.
+  // More info: https://aka.ms/dev-containers-non-root.
+  //"remoteUser": "root",
+
+  // "runArgs": [
+  //   "--network=stammtools_default"
+  // ]
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "elagil.pre-commit-helper"
+      ]
+    }
+  }
+}

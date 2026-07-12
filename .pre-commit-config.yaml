@@ -1,0 +1,45 @@
+# .pre-commit-config.yaml
+repos:
+  # Code-Style & Lint
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: 7.0.0
+  #   hooks:
+  #     - id: flake8
+  #       args: [--config=.flake8]
+  #       pass_filenames: false
+
+  # # Check Python files for syntax errors
+  # - repo: https://github.com/pre-commit/pre-commit-hooks
+  #   rev: v6.0.0
+  #   hooks:
+  #     - id: check-added-large-files
+  #     - id: end-of-file-fixer
+  #     - id: trailing-whitespace
+
+  # # Code-Metrics
+  # - repo: local
+  #   hooks:
+  #     - id: radon-complexity
+  #       name: Radon Complexity Check
+  #       entry: radon cc -s -a {files}
+  #       language: python
+  #       additional_dependencies: [radon]
+  #       types: [python]
+
+  # Import Sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        args: [--profile=black]
+
+  # Flags leftover debug print() calls in Python code — use `logging`
+  # instead (see app/core/logging.py).
+  - repo: local
+    hooks:
+      - id: check-print-statements
+        name: Check for print() statements
+        entry: python3 .pre-commit/check_print_statements.py
+        language: system
+        files: \.py$
+        exclude: ^.pre-commit/

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Log in — ContentFlow{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Log in</h1>
+
+    {% if not basic_enabled and not oauth_enabled %}
+      <p class="hint">No login method is configured. Contact the administrator.</p>
+    {% endif %}
+
+    {% if basic_enabled %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+      <div class="field mb-3">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" class="form-control"
+               required autofocus>
+      </div>
+
+      <div class="field mb-3">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control"
+               required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+    {% endif %}
+
+    {% if basic_enabled and oauth_enabled %}
+    <div class="auth-divider"><span>or</span></div>
+    {% endif %}
+
+    {% if oauth_enabled %}
+    <a class="btn-ghost btn-block"
+       href="{{ url_for('dashboard.oauth_start') }}">
+      Sign in with OAuth
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

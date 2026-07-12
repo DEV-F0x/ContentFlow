@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200">
+  <!-- ============ MARK ============ -->
+  <g id="mark">
+    <rect x="8" y="8" width="184" height="184" rx="44" fill="#1C2333"/>
+
+    <!-- paper / asset card -->
+    <rect x="54" y="44" width="78" height="88" rx="10" fill="#F7F5F0"/>
+    <!-- folded corner flap -->
+    <polygon points="108,44 132,44 132,68" fill="#D9D4C7"/>
+    <line x1="108" y1="44" x2="132" y2="68" stroke="#C7C1B1" stroke-width="1.5"/>
+
+    <!-- flow swoosh -->
+    <path d="M70,120 C95,156 136,159 155,128"
+          fill="none" stroke="#1FB6A6" stroke-width="12" stroke-linecap="round"/>
+    <!-- anchor dot: the stable link -->
+    <circle cx="160" cy="120" r="16" fill="#F0A833"/>
+  </g>
+
+  <!-- ============ WORDMARK ============ -->
+  <g font-family="'Space Grotesk','Segoe UI',sans-serif" font-weight="700" font-size="70">
+    <text x="222" y="128" fill="#1C2333">Content<tspan fill="#1FB6A6">Flow</tspan></text>
+  </g>
+</svg>

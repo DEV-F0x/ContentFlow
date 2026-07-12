@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Assets — ContentFlow{% endblock %}
+{% block content %}
+<div class="filters">
+  <a href="{{ url_for('dashboard.index') }}"
+     class="{{ 'active' if not asset_type }}">All</a>
+  <a href="{{ url_for('dashboard.index', type='js') }}"
+     class="{{ 'active' if asset_type == 'js' }}">JS</a>
+  <a href="{{ url_for('dashboard.index', type='css') }}"
+     class="{{ 'active' if asset_type == 'css' }}">CSS</a>
+  <a href="{{ url_for('dashboard.index', type='image') }}"
+     class="{{ 'active' if asset_type == 'image' }}">Images</a>
+</div>
+
+{% if not assets %}
+  <div class="empty">
+    <p>No assets yet.</p>
+    <button type="button" class="btn btn-primary"
+            data-bs-toggle="modal" data-bs-target="#uploadModal">
+      Upload your first asset
+    </button>
+  </div>
+{% endif %}
+
+<div class="asset-grid">
+  {% for asset in assets %}
+  <article class="asset-card">
+    <div class="thumb">
+      {% if asset.is_image %}
+        <img src="{{ asset.url }}" alt="{{ asset.name }}" loading="lazy">
+      {% else %}
+        <span class="thumb-ext">.{{ asset.name.rsplit('.', 1)[-1] if '.' in asset.name else '?' }}</span>
+      {% endif %}
+    </div>
+
+    <div class="asset-body">
+      <header>
+        <span class="filename" title="{{ asset.name }}">{{ asset.name }}</span>
+        <span class="size">{{ (asset.size_bytes / 1024) | round(1) }} KB</span>
+      </header>
+
+      <div class="field">
+        <label>Link</label>
+        <div class="field-row">
+          <input type="text" readonly value="{{ asset.url }}"
+                 id="link-{{ asset.id }}" class="select-on-click">
+          <button type="button" class="btn-copy"
+                  data-copy-target="link-{{ asset.id }}">Copy</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Embed tag</label>
+        <div class="field-row">
+          <textarea readonly rows="1" id="tag-{{ asset.id }}"
+                    class="select-on-click">{{ asset.tag }}</textarea>
+          <button type="button" class="btn-copy"
+                  data-copy-target="tag-{{ asset.id }}">Copy</button>
+        </div>
+      </div>
+
+      <footer>
+        <span class="hash" title="sha256:{{ asset.sha256 }}">
+          sha256:{{ asset.sha256[:10] }}…
+        </span>
+        <div class="actions">
+          <button type="button" class="btn-ghost"
+                  data-bs-toggle="modal" data-bs-target="#editModal"
+                  data-edit-id="{{ asset.id }}"
+                  data-edit-action="{{ url_for('dashboard.edit_asset', asset_id=asset.id) }}"
+                  data-edit-name="{{ asset.name }}"
+                  data-edit-url="{{ asset.url }}"
+                  data-edit-image="{{ 'true' if asset.is_image else 'false' }}"
+                  data-edit-size="{{ (asset.size_bytes / 1024) | round(1) }}">
+            Edit
+          </button>
+          <form method="post"
+                action="{{ url_for('dashboard.delete_asset', asset_id=asset.id) }}"
+                data-confirm="Delete {{ asset.name }}?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn-danger">Delete</button>
+          </form>
+        </div>
+      </footer>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

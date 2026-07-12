@@ -1,0 +1,47 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+**/__pycache__/
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Tests
+tests/
+*.test.py
+
+# Editor / OS files
+*.swp
+*.swo
+*.DS_Store
+.idea/
+.vscode/
+
+# Other
+.venv/
+test/
+docs/
+docker-compose.yml
+LICENSE
+README.md
+logs/
+site/
+pyproject.toml
+mkdocs.yml
+.pre-commit-config.yaml
+.flake8
+.dockerignore
+Dockerfile
+tests/
+instance/
+run.py
+logs/
+.VSCodeCounter/

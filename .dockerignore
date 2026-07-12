@@ -1,0 +1,27 @@
+# Applies to every service build (context: . in docker-compose.yml and the
+# release workflow) -- kept minimal and explicit on purpose: a bare `tests/`
+# or `run.py` pattern here would also match paths that ARE needed inside the
+# image, so every pattern below spells out the full path it targets.
+
+services/api/tests/
+services/api/requirements-test.txt
+services/dashboard/tests/
+services/dashboard/requirements-test.txt
+
+**/__pycache__/
+**/*.pyc
+
+.git/
+.github/
+.devcontainer/
+.vscode/
+.pre-commit/
+.pre-commit-config.yaml
+
+.env
+.env.*
+data/
+
+README.md
+docker-compose.yml
+LICENSE
