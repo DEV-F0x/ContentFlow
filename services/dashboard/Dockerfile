@@ -11,6 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Under QEMU emulation (arm/v7 builds), rustc's multi-threaded codegen
+# backend can deadlock -- a known qemu-user-static bug. Force a
+# single-threaded Rust build so it stays slow but finite instead of
+# hanging indefinitely. No effect on platforms with a prebuilt wheel.
+ENV CARGO_BUILD_JOBS=1
+ENV RUSTFLAGS="-C codegen-units=1"
+
 COPY services/dashboard/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
