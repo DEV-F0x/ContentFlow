@@ -63,7 +63,7 @@ def client(app):
 
 
 def extract_csrf_token(html: bytes) -> str:
-    match = re.search(rb"name=csrf_token[^>]*value=([^ >]+)", html)
+    match = re.search(rb'name="csrf_token"[^>]*value="([^"]+)"', html)
     assert match, "csrf_token input not found in response"
     return match.group(1).decode()
 

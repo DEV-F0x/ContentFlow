@@ -14,7 +14,7 @@ def _upload(client, csrf, filename="pic.png", data=PNG_BYTES, name=None):
 
 
 def _asset_id(html: bytes) -> str:
-    match = re.search(rb"data-edit-id=([a-f0-9-]+)", html)
+    match = re.search(rb'data-edit-id="([a-f0-9-]+)"', html)
     assert match, "no asset card found in response"
     return match.group(1).decode()
 
@@ -80,7 +80,7 @@ def test_rename_to_existing_name_is_rejected(logged_in_client, csrf_token):
     resp = logged_in_client.get("/")
     html = resp.data.decode()
     movable_id = re.search(
-        r'data-edit-id=([a-f0-9-]+)[^>]*data-edit-name=movable\.png', html
+        r'data-edit-id="([a-f0-9-]+)"[^>]*data-edit-name="movable\.png"', html
     )
     assert movable_id, html
 
