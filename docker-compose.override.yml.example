@@ -1,0 +1,32 @@
+# Example override for local tweaks. `docker compose` automatically merges
+# docker-compose.override.yml on top of docker-compose.yml -- no extra flags
+# needed. Copy this file to docker-compose.override.yml and edit; that
+# filename is gitignored so your local tweaks never get committed.
+#
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#
+# Everything below is commented out -- uncomment and adjust only what you
+# actually need. Compose merges maps/lists key by key, so you only have to
+# restate the bits you're changing.
+
+services:
+  dashboard:
+    # Expose on a different host port instead of 5001.
+    ports:
+      - "8080:5000"
+
+    # Override an env var without touching .env (e.g. to point at a
+    # different provider while testing OAuth).
+    # environment:
+    #   OAUTH_ALLOW_SIGNUP: "true"
+
+    # Attach a debugger / drop into a shell instead of the normal entrypoint.
+    # command: ["python", "-m", "pdb", "run.py"]
+
+  # api:
+  #   ports:
+  #     - "8081:5000"
+
+  # Bump Postgres to a different tag locally without editing the base file.
+  # postgres:
+  #   image: postgres:16-alpine

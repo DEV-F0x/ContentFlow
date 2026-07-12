@@ -1,0 +1,115 @@
+# Copy this file to docker-compose.yml and edit it directly, or leave it
+# as-is and layer your changes on top with docker-compose.override.yml (see
+# docker-compose.override.yml.example) -- docker-compose.yml and
+# docker-compose.override.yml are both gitignored so local edits never get
+# committed. `docker compose` picks up docker-compose.yml +
+# docker-compose.override.yml automatically, with no extra flags needed.
+#
+#   cp docker-compose.yml.example docker-compose.yml
+#
+# See README.md for the full explanation of the services and profiles below.
+
+name: contentflow
+
+services:
+  # Only started when the "postgres" profile is active (DB_BACKEND=postgres).
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Only started when the "s3" profile is active (STORAGE_BACKEND=s3).
+  minio:
+    profiles: ["s3"]
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    profiles: ["s3"]
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+      mc mb -p local/$${S3_BUCKET} || true
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+
+  # Read-only file server: no DB, just streams objects out of MinIO/S3 or
+  # (when STORAGE_BACKEND=local) the bind-mounted ./data/storage directory.
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      # required: false -- these targets only exist when their profile is
+      # active, so don't block/error when that backend isn't selected.
+      minio-init:
+        condition: service_completed_successfully
+        required: false
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./services/api:/app
+      - ./services/shared:/shared
+      - ./data/storage:/data/storage
+
+  # Owns all writes: uploads/edits/deletes assets in the DB (Postgres or
+  # SQLite) + object storage (MinIO/S3 or local bind mount).
+  dashboard:
+    build:
+      context: .
+      dockerfile: services/dashboard/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      minio-init:
+        condition: service_completed_successfully
+        required: false
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./services/dashboard:/app
+      - ./services/shared:/shared
+      - ./data:/data
+
+volumes:
+  postgres-data:
+  minio-data:

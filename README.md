@@ -41,7 +41,19 @@ var (see [Environment variables](#environment-variables)).
 ```bash
 cp .env.example .env
 # edit .env: at minimum set DASHBOARD_SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
+cp docker-compose.yml.example docker-compose.yml
 docker compose up --build
+```
+
+`docker-compose.yml` (like `.env`) is gitignored, so it's yours to edit freely without
+risking a commit. For small local tweaks -- a different host port, an extra
+env var, a debug command -- prefer layering a `docker-compose.override.yml`
+instead of editing `docker-compose.yml` itself; `docker compose` merges it in
+automatically with no extra flags:
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+# uncomment/edit whatever you need in there
 ```
 
 - Dashboard: http://localhost:5001 — log in with `ADMIN_USERNAME` /

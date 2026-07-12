@@ -212,6 +212,7 @@ __marimo__/
 
 # Custom
 docker-compose.yml
+docker-compose.override.yml
 test/
 logs/
 .VSCodeCounter/
