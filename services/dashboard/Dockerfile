@@ -1,8 +1,9 @@
 # Separate build stage: on platforms without a prebuilt wheel (e.g.
 # linux/arm/v7), pip compiles deps like cryptography (via Authlib), cffi,
 # and greenlet (via SQLAlchemy) from source. That needs a full C/C++
-# toolchain (gcc, g++, libc headers/crt objects) and libatomic.so.1 --
-# none of which are in the slim base image. build-essential pulls in
+# toolchain (gcc, g++, libc headers/crt objects), libatomic.so.1, and
+# libffi's headers (cffi's extension is built against libffi) -- none of
+# which are in the slim base image. build-essential pulls in
 # gcc/g++/make/libc6-dev together; installing them in their own stage
 # keeps the toolchain out of the runtime image.
 FROM python:3.14-slim AS builder
@@ -10,7 +11,7 @@ FROM python:3.14-slim AS builder
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libatomic1 \
+        build-essential libatomic1 libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Under QEMU emulation (arm/v7 builds), rustc's multi-threaded codegen
