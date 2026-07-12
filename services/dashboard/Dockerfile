@@ -1,9 +1,24 @@
+# Separate build stage: on platforms without a prebuilt minify-html wheel
+# (e.g. linux/arm/v7), pip compiles it from Rust source, which needs a C
+# linker (gcc) and libatomic.so.1 -- neither is in the slim base image.
+# Building in its own stage keeps those toolchain packages out of the
+# runtime image.
+FROM python:3.14-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY services/dashboard/requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
 FROM python:3.14-slim
 
 WORKDIR /app
 
-COPY services/dashboard/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /install /usr/local
 
 COPY services/shared/ /shared/
 COPY services/dashboard/ .
