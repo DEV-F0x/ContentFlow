@@ -1,8 +1,8 @@
-# Separate build stage: on platforms without a prebuilt minify-html wheel
-# (e.g. linux/arm/v7), pip compiles it from Rust source, which needs a C
-# linker (gcc) and libatomic.so.1 -- neither is in the slim base image.
-# Building in its own stage keeps those toolchain packages out of the
-# runtime image.
+# Separate build stage: on platforms without a prebuilt wheel (e.g.
+# linux/arm/v7), pip compiles Rust-based deps like cryptography (pulled in
+# by Authlib) from source, which needs a C linker (gcc) and
+# libatomic.so.1 -- neither is in the slim base image. Building in its
+# own stage keeps those toolchain packages out of the runtime image.
 FROM python:3.14-slim AS builder
 
 WORKDIR /app
