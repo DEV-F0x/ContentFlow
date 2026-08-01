@@ -4,13 +4,28 @@ from pathlib import Path
 from dotenv import find_dotenv, load_dotenv
 
 # Anchor relative SQLITE_PATH/LOCAL_STORAGE_PATH to the directory containing
-# .env (the repo root), not the process cwd -- cwd varies depending on
-# whether the app is launched from the repo root, services/dashboard/, or
-# Docker's /app, and a cwd-relative path would silently point at a
-# different (empty) file/dir depending on how it was started.
+# .env (the repo root) instead of the process cwd, which varies depending
+# on whether the app is launched from the repo root or services/dashboard/.
+#
+# Under Docker there IS no on-disk .env to anchor to: `env_file: .env` in
+# docker-compose.yml injects its variables straight into the container's
+# environment without ever copying the file itself in, and the root
+# .dockerignore excludes .env/.env.* from the build context too -- so
+# find_dotenv() always comes up empty there. Falling back to cwd in that
+# case resolves relative paths against /app (the code, from WORKDIR)
+# instead of the repo root, so e.g. the shipped LOCAL_STORAGE_PATH=
+# ./data/storage would silently write into the container's throwaway layer
+# at /app/data/storage instead of the volume docker-compose.yml actually
+# mounts at /data -- gone on the next `docker compose up`.
+#
+# docker-compose.yml only ever bind-mounts the repo root's ./data (not the
+# whole repo) into the container, at /data -- so "/" is the right stand-in
+# for "the repo root" here: it makes a relative ./data/... path (the only
+# relative paths that can persist under Docker at all, since nothing else
+# is mounted) resolve to /data/..., matching that mount exactly.
 _dotenv_path = find_dotenv()
 load_dotenv(_dotenv_path)
-_BASE_DIR = Path(_dotenv_path).resolve().parent if _dotenv_path else Path.cwd()
+_BASE_DIR = Path(_dotenv_path).resolve().parent if _dotenv_path else Path("/")
 
 
 def _resolve_path(value):
