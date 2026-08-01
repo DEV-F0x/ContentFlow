@@ -71,7 +71,9 @@
                   data-edit-name="{{ asset.name }}"
                   data-edit-url="{{ asset.url }}"
                   data-edit-image="{{ 'true' if asset.is_image else 'false' }}"
-                  data-edit-size="{{ (asset.size_bytes / 1024) | round(1) }}">
+                  data-edit-size="{{ (asset.size_bytes / 1024) | round(1) }}"
+                  data-edit-content-type="{{ asset.content_type }}"
+                  data-edit-force-download="{{ 'true' if asset.force_download else 'false' }}">
             Edit
           </button>
           <form method="post"

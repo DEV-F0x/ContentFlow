@@ -129,6 +129,39 @@ python services/dashboard/run.py    # reads .env from the repo root
 Same for `services/api`. This is how the devcontainer runs things day to
 day instead of rebuilding images on every change.
 
+## Serve type (Content-Type / Content-Disposition)
+
+By default an asset's `Content-Type` is guessed from its extension and it's
+served inline (rendered in the browser where the browser supports it —
+e.g. images, PDFs, plain text). The upload and edit modals have a **Serve
+as** control to override that per asset:
+
+- **Auto-detect** (default) — extension-guessed type, served inline.
+- **Plain text / HTML / JSON** — common presets. Pick **HTML** to have an
+  uploaded `.html` file render as a page instead of relying on whatever the
+  extension guess produces.
+- **Custom MIME type…** — any `type/subtype` string.
+- **Force download** — an independent checkbox; adds
+  `Content-Disposition: attachment` so the browser prompts to save the file
+  instead of rendering it, regardless of the content type above.
+
+This is enforced by `services/api`, not the dashboard — the api service has
+no database of its own (by design, see [Architecture](#architecture)), so
+the choice has to travel through object storage itself: as native
+`ContentType`/`ContentDisposition` object metadata for the S3 backend, or
+as a small `.<name>.meta.json` sidecar file next to the object for the
+local-disk backend (written/removed alongside the object by
+`services/dashboard/app/storage.py`, read by
+`services/api/app/storage.py`). Assets uploaded before this existed have no
+sidecar/metadata and keep falling back to the extension guess, served
+inline.
+
+> Rendering user-uploaded HTML on the api origin only executes inline
+> scripts/styles if the api's CSP allows it — the default `CSP_POLICY`
+> (`default-src 'none'; img-src 'self'; style-src 'self'`) blocks scripts
+> entirely, so treat a looser `CSP_POLICY` as the thing that actually makes
+> uploaded HTML executable, not the Serve-as choice itself.
+
 ## Auth
 
 The dashboard has exactly one admin identity, configured entirely through

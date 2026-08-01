@@ -42,22 +42,26 @@ def create_app():
         result = fetch(object_key)
         if result is None:
             abort(404)
-        source, content_type = result
+        source, content_type, content_disposition = result
 
         if isinstance(source, Path):
-            return send_file(
+            response = send_file(
                 source,
                 mimetype=content_type,
                 conditional=True,
                 max_age=31536000,
             )
+        else:
+            response = Response(
+                source.iter_chunks(chunk_size=65536),
+                mimetype=content_type,
+                headers={
+                    "Cache-Control": "public, max-age=31536000, immutable",
+                },
+            )
 
-        return Response(
-            source.iter_chunks(chunk_size=65536),
-            mimetype=content_type,
-            headers={
-                "Cache-Control": "public, max-age=31536000, immutable",
-            },
-        )
+        if content_disposition:
+            response.headers["Content-Disposition"] = content_disposition
+        return response
 
     return app

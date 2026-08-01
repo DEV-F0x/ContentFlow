@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import mimetypes
+import re
 import secrets
 from urllib.parse import urlparse
 
@@ -31,6 +32,40 @@ from .storage import delete_object, get_object, put_object
 from .tags import IMAGE_EXTS, extension_of
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
+# Presets offered in the "Serve as" dropdown -- anything else goes through
+# the "Custom MIME type..." field instead. Kept short and to the point:
+# these are the cases where the extension-guessed type is wrong for what
+# the admin actually wants (e.g. an uploaded .html file that should render
+# in the browser instead of the default download-only behavior most
+# browsers apply to files linked from another origin).
+_CONTENT_TYPE_PRESETS = {"text/plain", "text/html", "application/json"}
+_MIME_TYPE_RE = re.compile(r"^[\w.+-]+/[\w.+-]+(?:\s*;\s*[\w.+-]+=[^\r\n;]+)*$")
+
+
+def _resolve_content_type(default_content_type):
+    """Resolve the Content-Type to serve an asset with.
+
+    `default_content_type` is what it would be with no override -- the
+    extension-guessed type for a new upload/replacement, or the asset's
+    existing content_type when just renaming without replacing the file.
+    Returns (content_type, error) -- error is a user-facing message when
+    the submitted preset/custom value can't be used.
+    """
+    preset = request.form.get("content_type_preset", "").strip()
+    if preset == "custom":
+        custom = request.form.get("content_type_custom", "").strip()
+        if not custom:
+            return None, "Please enter a custom content type, or choose a preset."
+        if not _MIME_TYPE_RE.match(custom):
+            return None, (
+                f'"{custom}" doesn\'t look like a valid content type '
+                '(expected e.g. "text/html").'
+            )
+        return custom, None
+    if preset in _CONTENT_TYPE_PRESETS:
+        return preset, None
+    return default_content_type, None
 
 
 @dashboard_bp.before_request
@@ -204,18 +239,28 @@ def upload():
     sha256 = hashlib.sha256(data).hexdigest()
     sha384_digest = hashlib.sha384(data).digest()
     sha384_b64 = base64.b64encode(sha384_digest).decode("ascii")
-    content_type = (
+    default_content_type = (
         mimetypes.guess_type(name)[0]
         or upload_file.mimetype
         or "application/octet-stream"
     )
+    content_type, content_type_error = _resolve_content_type(default_content_type)
+    if content_type_error:
+        flash(content_type_error, "error")
+        return redirect(url_for("dashboard.index", upload=1))
 
-    put_object(name, data, content_type)
+    force_download = request.form.get("force_download") == "on"
+    content_disposition = (
+        f'attachment; filename="{name}"' if force_download else None
+    )
+
+    put_object(name, data, content_type, content_disposition)
 
     asset = Asset(
         name=name,
         original_filename=secure_filename(original_filename),
         content_type=content_type,
+        force_download=force_download,
         size_bytes=len(data),
         sha256=sha256,
         sha384_b64=sha384_b64,
@@ -264,23 +309,34 @@ def edit_asset(asset_id):
             flash("Empty file.", "error")
             return redirect(url_for("dashboard.index", edit=asset.id))
         data = maybe_minify_asset(original_filename, data)
-        content_type = (
+        default_content_type = (
             mimetypes.guess_type(name)[0]
             or replacement.mimetype
             or "application/octet-stream"
         )
     else:
         data = get_object(asset.name)
-        content_type = asset.content_type
+        default_content_type = asset.content_type
+
+    content_type, content_type_error = _resolve_content_type(default_content_type)
+    if content_type_error:
+        flash(content_type_error, "error")
+        return redirect(url_for("dashboard.index", edit=asset.id))
+
+    force_download = request.form.get("force_download") == "on"
+    content_disposition = (
+        f'attachment; filename="{name}"' if force_download else None
+    )
 
     old_name = asset.name
-    put_object(name, data, content_type)
+    put_object(name, data, content_type, content_disposition)
     if name != old_name:
         delete_object(old_name)
 
     asset.name = name
     asset.original_filename = secure_filename(original_filename)
     asset.content_type = content_type
+    asset.force_download = force_download
     asset.size_bytes = len(data)
     asset.sha256 = hashlib.sha256(data).hexdigest()
     asset.sha384_b64 = base64.b64encode(

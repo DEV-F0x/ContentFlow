@@ -26,6 +26,14 @@ function cfPreviewFile(input, previewId, nameId) {
   }
 }
 
+function updateServeTypeCustomVisibility(select) {
+  const target = document.getElementById(select.dataset.customTarget);
+  if (!target) return;
+  const isCustom = select.value === "custom";
+  target.hidden = !isCustom;
+  target.required = isCustom;
+}
+
 function populateEditModal(btn) {
   document.getElementById("edit-form").action = btn.dataset.editAction;
   document.getElementById("editModalLabel").textContent = "Edit " + btn.dataset.editName;
@@ -47,6 +55,25 @@ function populateEditModal(btn) {
     ext.textContent = "." + (parts.length > 1 ? parts.pop() : "?");
     ext.hidden = false;
   }
+
+  const contentType = btn.dataset.editContentType || "";
+  const presetSelect = document.getElementById("edit-content-type-preset");
+  const customInput = document.getElementById("edit-content-type-custom");
+  const presetValues = Array.from(presetSelect.options).map((o) => o.value);
+  if (contentType && presetValues.includes(contentType)) {
+    presetSelect.value = contentType;
+    customInput.value = "";
+  } else if (contentType) {
+    presetSelect.value = "custom";
+    customInput.value = contentType;
+  } else {
+    presetSelect.value = "";
+    customInput.value = "";
+  }
+  updateServeTypeCustomVisibility(presetSelect);
+
+  document.getElementById("edit-force-download").checked =
+    btn.dataset.editForceDownload === "true";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -68,6 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("change", () => {
       cfPreviewFile(input, input.dataset.previewTarget, input.dataset.nameTarget);
     });
+  });
+
+  document.querySelectorAll("[data-serve-type-select]").forEach((select) => {
+    updateServeTypeCustomVisibility(select);
+    select.addEventListener("change", () => updateServeTypeCustomVisibility(select));
   });
 
   const editModalEl = document.getElementById("editModal");

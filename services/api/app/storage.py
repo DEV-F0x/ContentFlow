@@ -1,3 +1,4 @@
+import json
 import mimetypes
 from pathlib import Path
 
@@ -49,21 +50,37 @@ def _resolve_local_path(key):
     return target
 
 
+def _read_local_meta(key):
+    # Written by services/dashboard/app/storage.py's put_object -- see the
+    # comment there. Absent for objects uploaded before this existed, or if
+    # nothing overrode the auto-detected content-type.
+    meta_path = _resolve_local_path(f".{key}.meta.json")
+    if not meta_path or not meta_path.is_file():
+        return {}
+    try:
+        return json.loads(meta_path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
 def fetch(key):
     """Look up an asset by its serving name (== storage key).
 
-    Returns (source, content_type), where `source` is a local `Path` when
-    serving from disk, or a streaming S3 body otherwise -- callers branch on
-    `isinstance(source, Path)`. Returns None if the object doesn't exist.
+    Returns (source, content_type, content_disposition), where `source` is
+    a local `Path` when serving from disk, or a streaming S3 body
+    otherwise -- callers branch on `isinstance(source, Path)`.
+    `content_disposition` is None unless the asset was uploaded/edited with
+    "force download" set. Returns None if the object doesn't exist.
     """
     if current_app.config["STORAGE_BACKEND"] == "local":
         path = _resolve_local_path(key)
         if not path or not path.is_file():
             return None
-        content_type = (
+        meta = _read_local_meta(key)
+        content_type = meta.get("content_type") or (
             mimetypes.guess_type(key)[0] or "application/octet-stream"
         )
-        return path, content_type
+        return path, content_type, meta.get("content_disposition")
 
     client = get_client()
     try:
@@ -75,4 +92,4 @@ def fetch(key):
     content_type = obj.get("ContentType") or (
         mimetypes.guess_type(key)[0] or "application/octet-stream"
     )
-    return obj["Body"], content_type
+    return obj["Body"], content_type, obj.get("ContentDisposition")

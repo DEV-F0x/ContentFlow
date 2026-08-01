@@ -509,6 +509,31 @@ h1 {
 
 .form-control::file-selector-button { display: none; }
 
+.form-select {
+  background-color: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.form-select:focus {
+  background-color: var(--surface-2);
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.form-check-input {
+  background-color: var(--surface-2);
+  border-color: var(--border);
+}
+
+.form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.form-check-label { font-size: 0.85rem; color: var(--muted); }
+
 @media (prefers-color-scheme: dark) {
   .btn-close { filter: invert(1) grayscale(100%); }
 }

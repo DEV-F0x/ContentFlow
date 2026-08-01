@@ -24,6 +24,12 @@ class Asset(db.Model):
     name = db.Column(db.String(255), nullable=False, unique=True, index=True)
     original_filename = db.Column(db.String(255), nullable=False)
     content_type = db.Column(db.String(128), nullable=False)
+    # When true, served with Content-Disposition: attachment instead of
+    # inline -- forces a download/Save As even for types a browser would
+    # otherwise render (see routes.py's content-type/serve-type handling
+    # and services/api/app/storage.py, which is what actually applies this
+    # since the api service has no DB of its own).
+    force_download = db.Column(db.Boolean, nullable=False, default=False)
     size_bytes = db.Column(db.Integer, nullable=False)
     sha256 = db.Column(db.String(64), nullable=False, index=True)
     sha384_b64 = db.Column(db.String(128), nullable=False)
@@ -37,6 +43,7 @@ class Asset(db.Model):
             "name": self.name,
             "original_filename": self.original_filename,
             "content_type": self.content_type,
+            "force_download": self.force_download,
             "size_bytes": self.size_bytes,
             "sha256": self.sha256,
             "integrity": integrity,

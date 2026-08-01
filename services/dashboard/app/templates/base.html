@@ -96,6 +96,29 @@
                 HTML, CSS and JS uploads are minified before saving.
               </p>
             </div>
+
+            <div class="mb-3">
+              <label for="modal-content-type-preset" class="form-label">Serve as</label>
+              <select id="modal-content-type-preset" name="content_type_preset"
+                      class="form-select" data-serve-type-select
+                      data-custom-target="modal-content-type-custom">
+                <option value="">Auto-detect from file type</option>
+                <option value="text/plain">Plain text</option>
+                <option value="text/html">HTML (renders in the browser)</option>
+                <option value="application/json">JSON</option>
+                <option value="custom">Custom MIME type…</option>
+              </select>
+              <input type="text" id="modal-content-type-custom" name="content_type_custom"
+                     class="form-control mt-2" placeholder="e.g. application/xml" hidden>
+            </div>
+
+            <div class="mb-1 form-check">
+              <input type="checkbox" id="modal-force-download" name="force_download"
+                     class="form-check-input">
+              <label for="modal-force-download" class="form-check-label">
+                Force download instead of rendering inline
+              </label>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
@@ -143,6 +166,29 @@
                      data-preview-target="edit-file-preview" data-name-target="edit-file-name">
               <img id="edit-file-preview" class="file-preview" alt="" hidden>
               <p class="hint mt-2">Optional — leave empty to keep the current file and just rename it.</p>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-content-type-preset" class="form-label">Serve as</label>
+              <select id="edit-content-type-preset" name="content_type_preset"
+                      class="form-select" data-serve-type-select
+                      data-custom-target="edit-content-type-custom">
+                <option value="">Auto-detect from file type</option>
+                <option value="text/plain">Plain text</option>
+                <option value="text/html">HTML (renders in the browser)</option>
+                <option value="application/json">JSON</option>
+                <option value="custom">Custom MIME type…</option>
+              </select>
+              <input type="text" id="edit-content-type-custom" name="content_type_custom"
+                     class="form-control mt-2" placeholder="e.g. application/xml" hidden>
+            </div>
+
+            <div class="mb-1 form-check">
+              <input type="checkbox" id="edit-force-download" name="force_download"
+                     class="form-check-input">
+              <label for="edit-force-download" class="form-check-label">
+                Force download instead of rendering inline
+              </label>
             </div>
           </div>
           <div class="modal-footer">
