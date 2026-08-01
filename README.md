@@ -38,12 +38,26 @@ var (see [Environment variables](#environment-variables)).
 
 ## Quickstart
 
+The example compose file runs the prebuilt multi-arch images published to
+GHCR, so nothing is built locally:
+
 ```bash
 cp .env.example .env
 # edit .env: at minimum set DASHBOARD_SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
 cp docker-compose.yml.example docker-compose.yml
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
+
+The images are:
+
+```bash
+docker pull ghcr.io/dev-f0x/contentflow-dashboard:latest
+docker pull ghcr.io/dev-f0x/contentflow-api:latest
+```
+
+`:latest` floats to the newest release; pin to a version tag
+(`:1.2.0`, `:1.2`, `:1`) in production so an upgrade is a deliberate act.
 
 `docker-compose.yml` (like `.env`) is gitignored, so it's yours to edit freely without
 risking a commit. For small local tweaks -- a different host port, an extra
@@ -55,6 +69,28 @@ automatically with no extra flags:
 cp docker-compose.override.yml.example docker-compose.override.yml
 # uncomment/edit whatever you need in there
 ```
+
+### Building from source instead
+
+`docker-compose.override.yml.example` has a commented-out block per service
+that swaps the GHCR image for a local `build:` and bind-mounts your working
+tree over the container's `/app` and `/shared` so edits apply without a
+rebuild:
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+# uncomment the `build:` + `volumes:` blocks
+docker compose up --build
+```
+
+> **Those `./services/*` bind mounts are development-only.** They replace
+> `/app` inside the container with a host directory. Against the prebuilt
+> GHCR image on a host without the repo checked out, that directory is
+> empty, so the app disappears and the container crash-loops with
+> `python: can't open file '/app/init_db.py'` and
+> `ModuleNotFoundError: No module named 'run'`. If you see that, remove the
+> `./services/dashboard:/app` / `./services/api:/app` / `./services/shared:/shared`
+> mounts from your `docker-compose.yml`.
 
 - Dashboard: http://localhost:5001 — log in with `ADMIN_USERNAME` /
   `ADMIN_PASSWORD` from `.env`.
@@ -149,10 +185,13 @@ python -m pytest services/dashboard/tests
   every push and pull request.
 - **`.github/workflows/create-docker-on-release.yml`** — on every GitHub
   Release, builds multi-arch (`amd64`/`arm64`/`arm/v7`) images for both
-  services and pushes them to GHCR as `ghcr.io/<owner>/contentflow-api` and
-  `ghcr.io/<owner>/contentflow-dashboard`, tagged with the release version
-  (plus a floating `latest`). Cutting a release is the only thing that
-  triggers a build — pushes to a branch don't publish images.
+  services and pushes them to GHCR as
+  `ghcr.io/dev-f0x/contentflow-api` and
+  `ghcr.io/dev-f0x/contentflow-dashboard` (`ghcr.io/<owner>/...` — the owner
+  is taken from the repository), tagged with the release version and
+  `{major}.{minor}` / `{major}` (plus a floating `latest`). Cutting a release
+  is the only thing that triggers a build — pushes to a branch don't publish
+  images.
 
 ## Environment variables
 

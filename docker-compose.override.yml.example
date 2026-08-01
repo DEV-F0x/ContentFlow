@@ -15,6 +15,25 @@ services:
     ports:
       - "8080:5000"
 
+    # --- Build from source instead of pulling from GHCR (development) ---
+    #
+    # `build:` wins over the base file's `image:` as the source of the
+    # image, and the two bind mounts put your working tree over the
+    # image's /app and /shared so edits show up without a rebuild.
+    #
+    # These mounts REQUIRE the repo checked out next to this file. Never
+    # enable them against the prebuilt ghcr.io image on a deploy host --
+    # an empty ./services/dashboard would hide the app inside the image
+    # and gunicorn fails with "No module named 'run'".
+    #
+    # build:
+    #   context: .
+    #   dockerfile: services/dashboard/Dockerfile
+    # volumes:
+    #   - ./services/dashboard:/app
+    #   - ./services/shared:/shared
+    #   - ./data:/data
+
     # Override an env var without touching .env (e.g. to point at a
     # different provider while testing OAuth).
     # environment:
@@ -26,6 +45,15 @@ services:
   # api:
   #   ports:
   #     - "8081:5000"
+
+    # Build from source -- same caveat as the dashboard block above.
+    # build:
+    #   context: .
+    #   dockerfile: services/api/Dockerfile
+    # volumes:
+    #   - ./services/api:/app
+    #   - ./services/shared:/shared
+    #   - ./data/storage:/data/storage
 
   # Bump Postgres to a different tag locally without editing the base file.
   # postgres:

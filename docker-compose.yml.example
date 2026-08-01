@@ -6,6 +6,13 @@
 # docker-compose.override.yml automatically, with no extra flags needed.
 #
 #   cp docker-compose.yml.example docker-compose.yml
+#   docker compose pull
+#   docker compose up -d
+#
+# This file runs the prebuilt images published to GHCR by the release
+# workflow -- no repo checkout beyond this file and .env is needed. To build
+# the images from source instead (for development), use the "build from
+# source" block in docker-compose.override.yml.example.
 #
 # See README.md for the full explanation of the services and profiles below.
 
@@ -69,10 +76,14 @@ services:
 
   # Read-only file server: no DB, just streams objects out of MinIO/S3 or
   # (when STORAGE_BACKEND=local) the bind-mounted ./data/storage directory.
+  #
+  # NOTE: only ./data is bind-mounted here. Do NOT mount ./services/api over
+  # /app (or ./services/shared over /shared) when running the prebuilt image
+  # -- those paths already come from the image, and mounting an empty host
+  # directory on top of them hides the app ("No module named 'run'").
   api:
-    build:
-      context: .
-      dockerfile: services/api/Dockerfile
+    # Pin to a release tag (e.g. :1.2.0) instead of :latest for production.
+    image: ghcr.io/dev-f0x/contentflow-api:latest
     restart: unless-stopped
     env_file: .env
     depends_on:
@@ -84,16 +95,15 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./services/api:/app
-      - ./services/shared:/shared
       - ./data/storage:/data/storage
 
   # Owns all writes: uploads/edits/deletes assets in the DB (Postgres or
   # SQLite) + object storage (MinIO/S3 or local bind mount).
+  #
+  # Same NOTE as above: no ./services/* mounts against the prebuilt image.
   dashboard:
-    build:
-      context: .
-      dockerfile: services/dashboard/Dockerfile
+    # Pin to a release tag (e.g. :1.2.0) instead of :latest for production.
+    image: ghcr.io/dev-f0x/contentflow-dashboard:latest
     restart: unless-stopped
     env_file: .env
     depends_on:
@@ -106,8 +116,6 @@ services:
     ports:
       - "5001:5000"
     volumes:
-      - ./services/dashboard:/app
-      - ./services/shared:/shared
       - ./data:/data
 
 volumes:
