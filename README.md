@@ -197,6 +197,16 @@ would be no way to log in at all).
 3. Set `ADMIN_USERNAME` to the email address your account will actually
    authenticate as, unless you set `OAUTH_ALLOW_SIGNUP=true`.
 
+## Health checks
+
+Both services expose `GET /healthz`, returning `{"status": "ok"}` with a
+`200` when the process is up (no DB/storage check -- just liveness). Each
+service's `Dockerfile` declares a `HEALTHCHECK` that polls its own
+`/healthz`, so `docker compose ps` / `docker inspect` report container
+health without needing a `healthcheck:` block in `docker-compose.yml` --
+same idea as the `postgres`/`minio` healthchecks already there, just baked
+into the image instead of the compose file.
+
 ## Running the tests
 
 Each service has its own self-contained pytest suite under `tests/` — no

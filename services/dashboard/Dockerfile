@@ -42,4 +42,10 @@ COPY services/dashboard/ .
 
 EXPOSE 5000
 
+# No curl/wget in the slim image -- use python's stdlib instead so the
+# healthcheck doesn't need an extra apt-get install. Longer start-period
+# than the api service to cover init_db.py running before gunicorn is up.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=2)"
+
 CMD python init_db.py && exec gunicorn -b 0.0.0.0:5000 -w 2 run:app
