@@ -232,7 +232,6 @@ h1 {
 }
 
 .thumb {
-  height: 130px;
   background: var(--surface-2);
   display: grid;
   place-items: center;
