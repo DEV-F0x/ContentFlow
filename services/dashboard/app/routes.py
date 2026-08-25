@@ -1,7 +1,4 @@
-import base64
-import hashlib
 import mimetypes
-import re
 import secrets
 from urllib.parse import urlparse
 
@@ -24,6 +21,7 @@ from flask_login import (
 )
 from werkzeug.utils import secure_filename
 
+from .asset_ops import hash_bytes, resolve_content_type_preset, resolve_name
 from .extensions import db
 from .minify import maybe_minify_asset
 from .models import AdminUser, Asset
@@ -33,18 +31,10 @@ from .tags import IMAGE_EXTS, extension_of
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
-# Presets offered in the "Serve as" dropdown -- anything else goes through
-# the "Custom MIME type..." field instead. Kept short and to the point:
-# these are the cases where the extension-guessed type is wrong for what
-# the admin actually wants (e.g. an uploaded .html file that should render
-# in the browser instead of the default download-only behavior most
-# browsers apply to files linked from another origin).
-_CONTENT_TYPE_PRESETS = {"text/plain", "text/html", "application/json"}
-_MIME_TYPE_RE = re.compile(r"^[\w.+-]+/[\w.+-]+(?:\s*;\s*[\w.+-]+=[^\r\n;]+)*$")
-
 
 def _resolve_content_type(default_content_type):
-    """Resolve the Content-Type to serve an asset with.
+    """Resolve the Content-Type to serve an asset with, from the dashboard's
+    preset/custom form fields.
 
     `default_content_type` is what it would be with no override -- the
     extension-guessed type for a new upload/replacement, or the asset's
@@ -52,20 +42,11 @@ def _resolve_content_type(default_content_type):
     Returns (content_type, error) -- error is a user-facing message when
     the submitted preset/custom value can't be used.
     """
-    preset = request.form.get("content_type_preset", "").strip()
-    if preset == "custom":
-        custom = request.form.get("content_type_custom", "").strip()
-        if not custom:
-            return None, "Please enter a custom content type, or choose a preset."
-        if not _MIME_TYPE_RE.match(custom):
-            return None, (
-                f'"{custom}" doesn\'t look like a valid content type '
-                '(expected e.g. "text/html").'
-            )
-        return custom, None
-    if preset in _CONTENT_TYPE_PRESETS:
-        return preset, None
-    return default_content_type, None
+    return resolve_content_type_preset(
+        request.form.get("content_type_preset", "").strip(),
+        request.form.get("content_type_custom", "").strip(),
+        default_content_type,
+    )
 
 
 @dashboard_bp.before_request
@@ -197,17 +178,6 @@ def index():
     )
 
 
-def _resolve_name(requested_name, original_filename):
-    ext = extension_of(original_filename)
-    if requested_name:
-        name = secure_filename(requested_name)
-        if ext and not name.lower().endswith(f".{ext}"):
-            name = f"{name}.{ext}"
-    else:
-        name = secure_filename(original_filename)
-    return name
-
-
 @dashboard_bp.post("/upload")
 @login_required
 def upload():
@@ -224,7 +194,7 @@ def upload():
     original_filename = upload_file.filename
     data = maybe_minify_asset(original_filename, data)
 
-    name = _resolve_name(request.form.get("name", "").strip(), original_filename)
+    name = resolve_name(request.form.get("name", "").strip(), original_filename)
     if not name:
         flash("Please provide a valid name for this asset.", "error")
         return redirect(url_for("dashboard.index", upload=1))
@@ -236,9 +206,7 @@ def upload():
         )
         return redirect(url_for("dashboard.index", upload=1))
 
-    sha256 = hashlib.sha256(data).hexdigest()
-    sha384_digest = hashlib.sha384(data).digest()
-    sha384_b64 = base64.b64encode(sha384_digest).decode("ascii")
+    sha256, sha384_b64 = hash_bytes(data)
     default_content_type = (
         mimetypes.guess_type(name)[0]
         or upload_file.mimetype
@@ -292,7 +260,7 @@ def edit_asset(asset_id):
         replacement.filename if has_replacement else asset.original_filename
     )
 
-    name = _resolve_name(request.form.get("name", "").strip(), original_filename)
+    name = resolve_name(request.form.get("name", "").strip(), original_filename)
     if not name:
         name = asset.name
 
@@ -338,10 +306,7 @@ def edit_asset(asset_id):
     asset.content_type = content_type
     asset.force_download = force_download
     asset.size_bytes = len(data)
-    asset.sha256 = hashlib.sha256(data).hexdigest()
-    asset.sha384_b64 = base64.b64encode(
-        hashlib.sha384(data).digest()
-    ).decode("ascii")
+    asset.sha256, asset.sha384_b64 = hash_bytes(data)
 
     try:
         db.session.commit()

@@ -81,6 +81,13 @@ class Config:
         int(_max_upload_mb) * 1024 * 1024 if _max_upload_mb else None
     )
 
+    # Bearer token for the machine-oriented JSON API under /api/v1 (used by
+    # e.g. the Terraform provider) -- unset by default, which keeps that API
+    # disabled (see app/api_routes.py). Separate from the dashboard login:
+    # there's no session/CSRF involved, just this one static token compared
+    # with secrets.compare_digest.
+    DASHBOARD_API_TOKEN = os.environ.get("DASHBOARD_API_TOKEN")
+
     # Login methods -- either or both may be on. There is a single admin
     # identity, configured entirely via env vars (no accounts table, no
     # database row -- login is just a string comparison against these).

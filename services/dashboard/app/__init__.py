@@ -41,10 +41,12 @@ def create_app():
             client_kwargs={"scope": app.config["OAUTH_SCOPE"]},
         )
 
+    from .api_routes import api_bp
     from .models import AdminUser, Asset  # noqa: F401 -- Asset registers table
     from .routes import dashboard_bp
 
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(api_bp)
 
     @login_manager.user_loader
     def load_user(user_id):

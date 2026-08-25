@@ -197,6 +197,33 @@ would be no way to log in at all).
 3. Set `ADMIN_USERNAME` to the email address your account will actually
    authenticate as, unless you set `OAUTH_ALLOW_SIGNUP=true`.
 
+## JSON API (for Terraform / scripts)
+
+Besides the HTML dashboard, `services/dashboard` exposes a small
+token-authenticated JSON API under `/api/v1` for managing assets from
+scripts or the
+[Terraform provider](https://github.com/DEV-F0x/terraform-provider-contentflow).
+It's separate from the dashboard login (no cookies/CSRF) and disabled by
+default:
+
+- Set `DASHBOARD_API_TOKEN` (see [Environment variables](#environment-variables))
+  to enable it. Every request must send `Authorization: Bearer <token>`;
+  without a token configured, the API returns `503`.
+- `GET /api/v1/assets` — list all assets
+- `GET /api/v1/assets/<id>` — get one asset
+- `POST /api/v1/assets` — create (multipart form: `file` required; `name`,
+  `content_type`, `force_download` optional)
+- `PATCH /api/v1/assets/<id>` — update (multipart form, all fields optional:
+  `file` to replace content, `name` to rename, `content_type`,
+  `force_download`)
+- `DELETE /api/v1/assets/<id>` — delete
+
+All responses are JSON, shaped like the asset objects the dashboard already
+renders (`id`, `name`, `url`, `content_type`, `force_download`, `size_bytes`,
+`sha256`, `integrity`, `created_at`) — `url` is the same real, working
+`{API_PUBLIC_URL}/files/<name>` link shown in the dashboard's copy-paste
+embed tag.
+
 ## Health checks
 
 Both services expose `GET /healthz`, returning `{"status": "ok"}` with a
@@ -303,6 +330,7 @@ itself in `docker-compose.yml`, not just the app's connection string.
 | `API_PUBLIC_URL` | `http://localhost:5000` | no | Used to build the links/embed tags shown in the dashboard — this must be the URL *your browser* can reach the API service at, which may differ from the API's internal container address. |
 | `MAX_UPLOAD_MB` | *(unset = unlimited)* | no | Caps upload size. |
 | `FLASK_DEBUG` | — | no | Read directly by Flask (not app code): enables the interactive debugger + auto-reload. **Never set this in production** — the debugger allows arbitrary code execution. |
+| `DASHBOARD_API_TOKEN` | *(unset = API disabled)* | no | Bearer token for the JSON API under `/api/v1` — see [JSON API](#json-api-for-terraform--scripts). |
 
 ### Dashboard login
 

@@ -22,6 +22,7 @@ os.environ["AUTH_BASIC_ENABLED"] = "true"
 os.environ["AUTH_OAUTH_ENABLED"] = "false"
 os.environ["ADMIN_USERNAME"] = "testadmin"
 os.environ["ADMIN_PASSWORD"] = "test-password-123"
+os.environ["DASHBOARD_API_TOKEN"] = "test-api-token"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -30,6 +31,7 @@ from app.extensions import db  # noqa: E402
 
 ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
 ADMIN_PASSWORD = os.environ["ADMIN_PASSWORD"]
+API_TOKEN = os.environ["DASHBOARD_API_TOKEN"]
 
 # 1x1 transparent PNG -- small enough to inline, real enough to exercise the
 # "is this an image" thumbnail/tag logic.
@@ -72,6 +74,11 @@ def extract_csrf_token(html: bytes) -> str:
 def csrf_token(client):
     resp = client.get("/login")
     return extract_csrf_token(resp.data)
+
+
+@pytest.fixture()
+def api_headers():
+    return {"Authorization": f"Bearer {API_TOKEN}"}
 
 
 @pytest.fixture()
