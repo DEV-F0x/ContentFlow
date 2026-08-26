@@ -224,6 +224,26 @@ renders (`id`, `name`, `url`, `content_type`, `force_download`, `size_bytes`,
 `{API_PUBLIC_URL}/files/<name>` link shown in the dashboard's copy-paste
 embed tag.
 
+## Terraform provider
+
+Assets can be managed as code with
+[terraform-provider-contentflow](https://github.com/DEV-F0x/terraform-provider-contentflow)
+([Terraform Registry](https://registry.terraform.io/providers/DEV-F0x/contentflow/latest)),
+a separate provider maintained alongside this project. It authenticates
+against the JSON API above using the same `DASHBOARD_API_TOKEN`:
+
+```hcl
+resource "contentflow_asset" "logo" {
+  name        = "logo.svg"
+  source      = "${path.module}/logo.svg"
+  source_hash = filesha256("${path.module}/logo.svg")
+}
+```
+
+`terraform apply` uploads the file and returns the served URL as an
+attribute; `terraform destroy` removes it. See the provider's own
+documentation for the full resource reference.
+
 ## Health checks
 
 Both services expose `GET /healthz`, returning `{"status": "ok"}` with a
