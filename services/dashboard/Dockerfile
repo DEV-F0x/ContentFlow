@@ -23,8 +23,6 @@ ARG RUNTIME_IMAGE=dhi.io/python:3.14
 
 FROM ${BUILDER_IMAGE} AS builder
 
-ENV PATH="/usr/local/bin:$PATH"
-
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,12 +42,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV CARGO_BUILD_JOBS=1
 ENV RUSTFLAGS="-C codegen-units=1"
 
+# A venv rather than `pip install --prefix=/install` + copying that prefix
+# into the runtime stage's /usr/local: DHI's python installs under /usr,
+# not /usr/local (unlike the official python:*-slim images, which build
+# CPython with --prefix=/usr/local), so a copied /install prefix silently
+# isn't on sys.path there. A venv's own site-packages is found regardless
+# of where the base image's interpreter lives, as long as its bin/ is
+# first on PATH -- set below in the runtime stage. --copies (rather than
+# the platform-default symlinks) so /opt/venv/bin/python doesn't depend on
+# resolving a symlink back into this (discarded) builder stage.
+RUN python -m venv --copies /opt/venv
+
 COPY services/dashboard/requirements.txt .
-RUN pip install --no-cache-dir --require-hashes --prefix=/install -r requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir --require-hashes -r requirements.txt
 
 FROM ${RUNTIME_IMAGE}
 
-ENV PATH="/usr/local/bin:$PATH"
+ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -59,7 +68,7 @@ WORKDIR /app
 # package manager of its own.
 COPY --from=builder /libpq-deps/ /
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /opt/venv /opt/venv
 
 COPY services/shared/ /shared/
 COPY services/dashboard/ .
