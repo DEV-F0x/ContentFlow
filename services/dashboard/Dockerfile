@@ -3,16 +3,32 @@
 # and greenlet (via SQLAlchemy) from source. That needs a full C/C++
 # toolchain (gcc, g++, libc headers/crt objects), libatomic.so.1, and
 # libffi's headers (cffi's extension is built against libffi) -- none of
-# which are in the slim base image. build-essential pulls in
-# gcc/g++/make/libc6-dev together; installing them in their own stage
-# keeps the toolchain out of the runtime image.
-FROM python:3.14-slim AS builder
+# which are in the base image. build-essential pulls in gcc/g++/make/
+# libc6-dev together; installing them in their own stage keeps the
+# toolchain out of the runtime image.
+#
+# Docker Hardened Image (DHI): the -dev variant has apt/a shell; the
+# runtime stage below uses the non-dev variant, which is minimal,
+# nonroot-by-default, and has neither -- so it can't apt-get install
+# libpq5 itself. Instead, libpq5 and its runtime shared-library
+# dependencies are resolved by apt here and copied into the runtime
+# stage below. Both variants require `docker login dhi.io` to pull --
+# see .github/workflows/create-docker-on-release.yml.
+FROM dhi.io/python:3.14-dev AS builder
+
+ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libatomic1 libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
+        build-essential libatomic1 libffi-dev libpq5 \
+    && rm -rf /var/lib/apt/lists/* \
+    && libdir="$(dpkg -L libpq5 | grep -m1 -oE '^/usr/lib/[^/]+')" \
+    && mkdir -p "/libpq-deps${libdir}" \
+    && for pkg in libpq5 libssl3t64 libgssapi-krb5-2 libldap2 libsasl2-2 \
+                  libkrb5-3 libk5crypto3 libkrb5support0 libcom-err2 libkeyutils1; do \
+         dpkg -L "$pkg" | grep -E "^${libdir}/lib[^/]+\.so(\.[0-9]+)*\$"; \
+       done | xargs cp -a --target-directory="/libpq-deps${libdir}"
 
 # Under QEMU emulation (arm/v7 builds), rustc's multi-threaded codegen
 # backend can deadlock -- a known qemu-user-static bug. Force a
@@ -24,16 +40,17 @@ ENV RUSTFLAGS="-C codegen-units=1"
 COPY services/dashboard/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM python:3.14-slim
+FROM dhi.io/python:3.14
+
+ENV PATH="/usr/local/bin:$PATH"
 
 WORKDIR /app
 
-# psycopg (no [binary] extra) talks to Postgres via ctypes, loading the
-# system libpq.so at runtime instead of bundling a precompiled driver --
-# needed since no psycopg-binary wheel exists for platforms like arm/v7.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq5 \
-    && rm -rf /var/lib/apt/lists/*
+# libpq5 (needed by psycopg, which talks to Postgres via ctypes) plus
+# the shared libraries it links against -- see the builder stage above,
+# which resolved this set via apt since this runtime image has no
+# package manager of its own.
+COPY --from=builder /libpq-deps/ /
 
 COPY --from=builder /install /usr/local
 
@@ -46,6 +63,6 @@ EXPOSE 5000
 # healthcheck doesn't need an extra apt-get install. Longer start-period
 # than the api service to cover init_db.py running before gunicorn is up.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=2)"
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=2)"]
 
-CMD python init_db.py && exec gunicorn -b 0.0.0.0:5000 -w 2 run:app
+CMD ["python", "docker-entrypoint.py"]

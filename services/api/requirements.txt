@@ -1,4 +1,4 @@
-Flask>=3.0,<4
-boto3>=1.34,<2
-python-dotenv>=1.0,<2
-gunicorn>=22.0,<24
+Flask>=3.1,<4
+boto3>=1.44,<2
+python-dotenv>=1.2,<2
+gunicorn>=27.0,<28
