@@ -14,7 +14,14 @@
 # dependencies are resolved by apt here and copied into the runtime
 # stage below. Both variants require `docker login dhi.io` to pull --
 # see .github/workflows/create-docker-on-release.yml.
-FROM dhi.io/python:3.14-dev AS builder
+#
+# DHI's python image has no linux/arm/v7 build, so the CI workflow
+# overrides these to python:3.14-slim for that platform only -- the
+# libpq copy step below still runs (and still works) on that image too.
+ARG BUILDER_IMAGE=dhi.io/python:3.14-dev
+ARG RUNTIME_IMAGE=dhi.io/python:3.14
+
+FROM ${BUILDER_IMAGE} AS builder
 
 ENV PATH="/usr/local/bin:$PATH"
 
@@ -40,7 +47,7 @@ ENV RUSTFLAGS="-C codegen-units=1"
 COPY services/dashboard/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM dhi.io/python:3.14
+FROM ${RUNTIME_IMAGE}
 
 ENV PATH="/usr/local/bin:$PATH"
 

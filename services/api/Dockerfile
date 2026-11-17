@@ -2,7 +2,13 @@
 # installing packages; the runtime stage below uses the non-dev variant,
 # which is minimal, nonroot-by-default, and has neither. Both require
 # `docker login dhi.io` to pull -- see .github/workflows/create-docker-on-release.yml.
-FROM dhi.io/python:3.14-dev AS builder
+#
+# DHI's python image has no linux/arm/v7 build, so the CI workflow
+# overrides these to python:3.14-slim for that platform only.
+ARG BUILDER_IMAGE=dhi.io/python:3.14-dev
+ARG RUNTIME_IMAGE=dhi.io/python:3.14
+
+FROM ${BUILDER_IMAGE} AS builder
 
 ENV PATH="/usr/local/bin:$PATH"
 
@@ -11,7 +17,7 @@ WORKDIR /app
 COPY services/api/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM dhi.io/python:3.14
+FROM ${RUNTIME_IMAGE}
 
 ENV PATH="/usr/local/bin:$PATH"
 
