@@ -19,6 +19,8 @@ import ast
 import sys
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 EXCLUDED_PATH_PARTS = (
     "/.pre-commit/",
     "/node_modules/",
@@ -31,12 +33,20 @@ def is_excluded(path: str) -> bool:
     return any(part in normalized for part in EXCLUDED_PATH_PARTS)
 
 
+def _within_project_root(path: str) -> bool:
+    """pre-commit always passes paths of files tracked in this repo; refuse
+    to follow a path (e.g. via "../" components or a symlink) that resolves
+    outside PROJECT_ROOT, so this can't be made to read arbitrary files."""
+    resolved = (PROJECT_ROOT / path).resolve()
+    return resolved == PROJECT_ROOT or resolved.is_relative_to(PROJECT_ROOT)
+
+
 def _line_ignored(line: str) -> bool:
     return "print-ignore" in line
 
 
 def check_file(path: str) -> list[str]:
-    if is_excluded(path) or not path.endswith(".py"):
+    if is_excluded(path) or not path.endswith(".py") or not _within_project_root(path):
         return []
     try:
         text = Path(path).read_text(encoding="utf-8")

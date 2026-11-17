@@ -19,7 +19,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install dependencies
-        run: pip install -r services/${{ matrix.service }}/requirements-test.txt
+        run: pip install --require-hashes -r services/${{ matrix.service }}/requirements-test.txt
 
       - name: Run tests
         run: python -m pytest services/${{ matrix.service }}/tests -v

@@ -122,12 +122,32 @@ gated behind the matching profile (`profiles: ["postgres"]` /
 Each service is a plain Flask app with a `run.py`:
 
 ```bash
-pip install -r services/dashboard/requirements.txt
+pip install --require-hashes -r services/dashboard/requirements.txt
 python services/dashboard/run.py    # reads .env from the repo root
 ```
 
 Same for `services/api`. This is how the devcontainer runs things day to
 day instead of rebuilding images on every change.
+
+### Dependencies
+
+Each service's `requirements.txt` / `requirements-test.txt` is a fully
+pinned, hash-checked lockfile generated from the corresponding
+`requirements.in` / `requirements-test.in` (which carries the loose
+`>=,<` version ranges actually wanted) via
+[pip-tools](https://github.com/jazzband/pip-tools). Every install in this
+repo (Dockerfiles, CI, the commands above) passes `--require-hashes`, so
+`pip` refuses to install anything -- direct or transitive -- that doesn't
+match a hash recorded in the lockfile.
+
+To bump a version or add a dependency, edit the `.in` file, then
+regenerate the matching `.txt` from inside `services/<name>/`:
+
+```bash
+pip install pip-tools
+pip-compile --generate-hashes --strip-extras requirements.in
+pip-compile --generate-hashes --strip-extras requirements-test.in
+```
 
 ## Serve type (Content-Type / Content-Disposition)
 
@@ -262,10 +282,10 @@ Docker, no real Postgres/MinIO/OAuth provider needed. Tests force
 regardless of your local `.env`.
 
 ```bash
-pip install -r services/api/requirements-test.txt
+pip install --require-hashes -r services/api/requirements-test.txt
 python -m pytest services/api/tests
 
-pip install -r services/dashboard/requirements-test.txt
+pip install --require-hashes -r services/dashboard/requirements-test.txt
 python -m pytest services/dashboard/tests
 ```
 

@@ -14,11 +14,12 @@ def test_login_page_loads(client):
 
 
 def test_wrong_password_is_rejected(client, csrf_token):
+    wrong_password = ADMIN_PASSWORD + "-wrong"
     resp = client.post(
         "/login",
         data={
             "username": ADMIN_USERNAME,
-            "password": "not-the-password",
+            "password": wrong_password,
             "csrf_token": csrf_token,
         },
         follow_redirects=True,

@@ -67,7 +67,18 @@ def _inject_csrf_token():
 
 
 def _safe_next(target):
+    """Only allow same-site, path-only redirect targets. Beyond the usual
+    scheme/netloc check, this also rejects "//host" and "/\\host" --
+    scheme-relative and backslash-as-slash forms some browsers treat as
+    protocol-relative URLs, which `urlparse` alone doesn't catch -- and any
+    control character, which browsers strip before following a redirect
+    and could otherwise hide one of the above inside a path that looks
+    safe to `urlparse`."""
     if not target:
+        return None
+    if any(ord(c) < 0x20 or c == "\x7f" for c in target):
+        return None
+    if not target.startswith("/") or target.startswith(("//", "/\\")):
         return None
     parsed = urlparse(target)
     if parsed.scheme or parsed.netloc:

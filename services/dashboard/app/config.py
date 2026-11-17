@@ -30,7 +30,7 @@ _BASE_DIR = Path(_dotenv_path).resolve().parent if _dotenv_path else Path("/")
 
 def _resolve_path(value):
     path = Path(value)
-    return path if path.is_absolute() else (_BASE_DIR / path).resolve()
+    return path.resolve() if path.is_absolute() else (_BASE_DIR / path).resolve()
 
 
 def _database_url(backend):

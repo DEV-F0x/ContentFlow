@@ -24,13 +24,26 @@ def get_client():
 
 
 def _local_root():
-    root = Path(current_app.config["LOCAL_STORAGE_PATH"])
+    root = Path(current_app.config["LOCAL_STORAGE_PATH"]).resolve()
     root.mkdir(parents=True, exist_ok=True)
     return root
 
 
 def _is_local():
     return current_app.config["STORAGE_BACKEND"] == "local"
+
+
+def _resolve_local_path(key):
+    """Resolve `key` against the local storage root, raising if it would
+    escape that root (e.g. via "../" components or an absolute path) --
+    asset names are expected to be single path segments (see
+    app/asset_ops.py's secure_filename-based resolve_name()), but this is
+    checked explicitly here too rather than trusted implicitly."""
+    root = _local_root()
+    target = (root / key).resolve()
+    if target != root and not target.is_relative_to(root):
+        raise ValueError(f"Invalid storage key: {key!r}")
+    return target
 
 
 def _local_meta_path(key):
@@ -40,12 +53,12 @@ def _local_meta_path(key):
     # per-object metadata for this (ContentType/ContentDisposition below);
     # this dot-prefixed sidecar file is the local-disk equivalent, read by
     # services/api/app/storage.py.
-    return _local_root() / f".{key}.meta.json"
+    return _resolve_local_path(f".{key}.meta.json")
 
 
 def get_object(key):
     if _is_local():
-        return (_local_root() / key).read_bytes()
+        return _resolve_local_path(key).read_bytes()
 
     client = get_client()
     body = client.get_object(Bucket=current_app.config["S3_BUCKET"], Key=key)
@@ -54,7 +67,7 @@ def get_object(key):
 
 def put_object(key, data, content_type, content_disposition=None):
     if _is_local():
-        (_local_root() / key).write_bytes(data)
+        _resolve_local_path(key).write_bytes(data)
         _local_meta_path(key).write_text(
             json.dumps(
                 {
@@ -79,7 +92,7 @@ def put_object(key, data, content_type, content_disposition=None):
 
 def delete_object(key):
     if _is_local():
-        (_local_root() / key).unlink(missing_ok=True)
+        _resolve_local_path(key).unlink(missing_ok=True)
         _local_meta_path(key).unlink(missing_ok=True)
         return
 

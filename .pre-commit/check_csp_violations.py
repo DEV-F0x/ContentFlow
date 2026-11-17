@@ -96,6 +96,14 @@ def is_excluded(path: str) -> bool:
     return any(part in normalized for part in EXCLUDED_PATH_PARTS)
 
 
+def _within_project_root(path: str) -> bool:
+    """pre-commit always passes paths of files tracked in this repo; refuse
+    to follow a path (e.g. via "../" components or a symlink) that resolves
+    outside PROJECT_ROOT, so this can't be made to read arbitrary files."""
+    resolved = (PROJECT_ROOT / path).resolve()
+    return resolved == PROJECT_ROOT or resolved.is_relative_to(PROJECT_ROOT)
+
+
 def _line_ignored(line: str) -> bool:
     return "csp-ignore" in line
 
@@ -214,7 +222,7 @@ def check_external_hosts(
 
 
 def check_file(path: str, directives: dict[str, str]) -> list[str]:
-    if is_excluded(path):
+    if is_excluded(path) or not _within_project_root(path):
         return []
     try:
         text = Path(path).read_text(encoding="utf-8")

@@ -15,7 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import create_app  # noqa: E402
 
-STORAGE_DIR = Path(os.environ["LOCAL_STORAGE_PATH"])
+STORAGE_DIR = Path(os.environ["LOCAL_STORAGE_PATH"]).resolve()
+if not STORAGE_DIR.is_relative_to(_TEST_DIR.resolve()):
+    # LOCAL_STORAGE_PATH is set to a path under _TEST_DIR just above; this
+    # should be unreachable, but it's the directory the fixtures below
+    # mkdir/write into and shutil.rmtree afterwards, so check explicitly
+    # rather than trusting that unconditionally.
+    raise RuntimeError("LOCAL_STORAGE_PATH must stay inside the test tempdir")
 
 
 @pytest.fixture()

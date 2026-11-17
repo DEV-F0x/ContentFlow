@@ -15,7 +15,7 @@ ENV PATH="/usr/local/bin:$PATH"
 WORKDIR /app
 
 COPY services/api/requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --require-hashes --prefix=/install -r requirements.txt
 
 FROM ${RUNTIME_IMAGE}
 

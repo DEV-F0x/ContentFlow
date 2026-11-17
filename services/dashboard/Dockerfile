@@ -45,7 +45,7 @@ ENV CARGO_BUILD_JOBS=1
 ENV RUSTFLAGS="-C codegen-units=1"
 
 COPY services/dashboard/requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --require-hashes --prefix=/install -r requirements.txt
 
 FROM ${RUNTIME_IMAGE}
 

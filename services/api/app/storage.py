@@ -43,9 +43,14 @@ def get_client():
 
 
 def _resolve_local_path(key):
+    """Resolve `key` against the local storage root, refusing to return a
+    path outside it (e.g. via "../" components or an absolute path) --
+    `key` ultimately comes from the <path:object_key> URL segment in
+    serve_file(), below, so it must never be trusted to stay inside the
+    root on its own."""
     root = Path(current_app.config["LOCAL_STORAGE_PATH"]).resolve()
     target = (root / key).resolve()
-    if target != root and root not in target.parents:
+    if target != root and not target.is_relative_to(root):
         return None
     return target
 
